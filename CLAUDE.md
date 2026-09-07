@@ -84,14 +84,20 @@ behavior — reject at input time — is fixed.
 
 ### Rule list / editing
 
-"My rules" lists the user's **active** rules. Selecting one opens an edit
+"My rules" lists **all** of the user's rules, active and inactive alike
+(each shown with its status), since disabled rules must stay reachable to be
+re-enabled. Only active rules take part in matching and in the overlap
+check. Selecting one opens an edit
 view where the user can:
 
 - Edit the matching options, triggers, and/or reply text (subject to the
   same overlap check as creation).
 - Toggle the rule active/inactive without deleting it. Inactive rules are
   excluded from matching and from overlap checks, but stay in the list so
-  they can be re-enabled later.
+  they can be re-enabled later. Re-enabling runs the same overlap check as
+  creation (other rules may have taken over its triggers while it was off);
+  if it now conflicts, re-enabling is refused until the conflict is
+  resolved.
 
 ### Scope boundary
 

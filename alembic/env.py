@@ -7,6 +7,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from telegram_message_trigger.config import settings
+from telegram_message_trigger.db import models  # noqa: F401  (registers tables on Base.metadata)
 from telegram_message_trigger.db.base import Base
 
 # this is the Alembic Config object, which provides
