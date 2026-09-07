@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from telegram_message_trigger.db.models import Rule
-from telegram_message_trigger.handlers._util import edit_or_answer
+from telegram_message_trigger.handlers._util import edit_or_answer, message_to_html
 from telegram_message_trigger.keyboards.rules import rule_detail_keyboard
 from telegram_message_trigger.keyboards.wizard import (
     cancel_keyboard,
@@ -31,6 +31,7 @@ from telegram_message_trigger.states.rule_wizard import (
     EditScopeStates,
     EditTriggersStates,
 )
+from telegram_message_trigger.text_format import strip_html_preview
 
 router = Router(name="rules_list")
 
@@ -84,8 +85,8 @@ async def toggle_rule(callback: CallbackQuery, session: AsyncSession) -> None:
         conflict = await find_conflict_for_rule(session, rule)
         if conflict is not None:
             await callback.answer(
-                f"Нельзя включить: триггер «{conflict.new_trigger}» пересекается с «{conflict.existing_trigger}» "
-                f"в правиле #{conflict.existing_rule_id}.",
+                f"Нельзя включить: триггер «{strip_html_preview(conflict.new_trigger)}» пересекается с "
+                f"«{strip_html_preview(conflict.existing_trigger)}» в правиле #{conflict.existing_rule_id}.",
                 show_alert=True,
             )
             return
@@ -143,8 +144,9 @@ async def edit_set_whole_word(callback: CallbackQuery, state: FSMContext, sessio
     if conflict is not None:
         await state.clear()
         await callback.answer(
-            f"С такими условиями триггер «{conflict.new_trigger}» пересечётся с «{conflict.existing_trigger}» "
-            f"в правиле #{conflict.existing_rule_id}. Изменения не сохранены.",
+            f"С такими условиями триггер «{strip_html_preview(conflict.new_trigger)}» пересечётся с "
+            f"«{strip_html_preview(conflict.existing_trigger)}» в правиле #{conflict.existing_rule_id}. "
+            "Изменения не сохранены.",
             show_alert=True,
         )
         await _show_rule_detail(callback, session, rule.id)
@@ -178,8 +180,7 @@ async def edit_triggers_start(callback: CallbackQuery, state: FSMContext, sessio
 
 @router.message(EditTriggersStates.triggers, F.text)
 async def edit_set_triggers(message: Message, state: FSMContext, session: AsyncSession) -> None:
-    assert message.text is not None
-    triggers = parse_trigger_input(message.text)
+    triggers = parse_trigger_input(message_to_html(message))
     if not triggers:
         await message.answer("Не нашёл ни одного триггера, попробуйте ещё раз.", reply_markup=cancel_keyboard())
         return
@@ -202,8 +203,9 @@ async def edit_set_triggers(message: Message, state: FSMContext, session: AsyncS
     )
     if conflict is not None:
         await message.answer(
-            f"Триггер «{conflict.new_trigger}» пересекается с триггером «{conflict.existing_trigger}» "
-            f"в правиле #{conflict.existing_rule_id}. Измените список триггеров.",
+            f"Триггер «{strip_html_preview(conflict.new_trigger)}» пересекается с триггером "
+            f"«{strip_html_preview(conflict.existing_trigger)}» в правиле #{conflict.existing_rule_id}. "
+            "Измените список триггеров.",
             reply_markup=cancel_keyboard(),
         )
         return
@@ -230,7 +232,6 @@ async def edit_reply_start(callback: CallbackQuery, state: FSMContext, session: 
 
 @router.message(EditReplyStates.reply_text, F.text)
 async def edit_set_reply(message: Message, state: FSMContext, session: AsyncSession) -> None:
-    assert message.text is not None
     data = await state.get_data()
     rule = await get_rule(session, data["rule_id"])
     if rule is None:
@@ -238,7 +239,7 @@ async def edit_set_reply(message: Message, state: FSMContext, session: AsyncSess
         await message.answer("Правило не найдено.")
         return
 
-    await update_rule_reply(session, rule, message.text)
+    await update_rule_reply(session, rule, message_to_html(message))
     await state.clear()
     await message.answer(_render_rule_detail(rule), reply_markup=rule_detail_keyboard(rule))
 
@@ -277,8 +278,9 @@ async def edit_set_scope_all(callback: CallbackQuery, state: FSMContext, session
     if conflict is not None:
         await state.clear()
         await callback.answer(
-            f"Нельзя: триггер «{conflict.new_trigger}» пересечётся с «{conflict.existing_trigger}» "
-            f"в правиле #{conflict.existing_rule_id}. Изменения не сохранены.",
+            f"Нельзя: триггер «{strip_html_preview(conflict.new_trigger)}» пересечётся с "
+            f"«{strip_html_preview(conflict.existing_trigger)}» в правиле #{conflict.existing_rule_id}. "
+            "Изменения не сохранены.",
             show_alert=True,
         )
         await _show_rule_detail(callback, session, rule.id)
@@ -325,8 +327,9 @@ async def edit_set_scope_contact_picked(message: Message, state: FSMContext, ses
     if conflict is not None:
         await state.clear()
         await message.answer(
-            f"Нельзя: триггер «{conflict.new_trigger}» пересечётся с «{conflict.existing_trigger}» "
-            f"в правиле #{conflict.existing_rule_id}. Изменения не сохранены."
+            f"Нельзя: триггер «{strip_html_preview(conflict.new_trigger)}» пересечётся с "
+            f"«{strip_html_preview(conflict.existing_trigger)}» в правиле #{conflict.existing_rule_id}. "
+            "Изменения не сохранены."
         )
         await message.answer(_render_rule_detail(rule), reply_markup=rule_detail_keyboard(rule))
         return

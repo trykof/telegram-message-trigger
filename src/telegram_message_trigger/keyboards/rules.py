@@ -2,11 +2,12 @@ from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from telegram_message_trigger.db.models import Rule
+from telegram_message_trigger.text_format import strip_html_preview
 
 
 def _rule_label(rule: Rule) -> str:
     status = "🟢" if rule.is_active else "🔴"
-    preview = rule.triggers[0].text if rule.triggers else "…"
+    preview = strip_html_preview(rule.triggers[0].text) if rule.triggers else "…"
     if len(rule.triggers) > 1:
         preview += f" +{len(rule.triggers) - 1}"
     return f"{status} {preview}"

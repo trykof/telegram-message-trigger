@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from telegram_message_trigger.handlers._util import edit_or_answer
+from telegram_message_trigger.handlers._util import edit_or_answer, message_to_html
 from telegram_message_trigger.keyboards.menu import main_menu_keyboard
 from telegram_message_trigger.keyboards.wizard import (
     cancel_keyboard,
@@ -18,6 +18,7 @@ from telegram_message_trigger.services.rules import (
     parse_trigger_input,
 )
 from telegram_message_trigger.states.rule_wizard import AddRuleStates
+from telegram_message_trigger.text_format import strip_html_preview
 from telegram_message_trigger.texts import MAIN_MENU_TEXT
 
 router = Router(name="add_rule")
@@ -51,8 +52,7 @@ async def set_whole_word(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(AddRuleStates.triggers, F.text)
 async def set_triggers(message: Message, state: FSMContext) -> None:
-    assert message.text is not None
-    triggers = parse_trigger_input(message.text)
+    triggers = parse_trigger_input(message_to_html(message))
     if not triggers:
         await message.answer("Не нашёл ни одного триггера, попробуйте ещё раз.", reply_markup=cancel_keyboard())
         return
@@ -66,8 +66,7 @@ async def set_triggers(message: Message, state: FSMContext) -> None:
 
 @router.message(AddRuleStates.reply_text, F.text)
 async def set_reply_text(message: Message, state: FSMContext) -> None:
-    assert message.text is not None
-    await state.update_data(reply_text=message.text)
+    await state.update_data(reply_text=message_to_html(message))
     await state.set_state(AddRuleStates.scope)
     await message.answer("Шаг 5 из 5. В каком чате должно работать правило?", reply_markup=scope_keyboard())
 
@@ -91,8 +90,9 @@ async def _finalize_rule(
     if conflict is not None:
         await state.set_state(AddRuleStates.triggers)
         text = (
-            f"Триггер «{conflict.new_trigger}» пересекается с триггером «{conflict.existing_trigger}» "
-            f"в правиле #{conflict.existing_rule_id}. Пришлите список триггеров ещё раз."
+            f"Триггер «{strip_html_preview(conflict.new_trigger)}» пересекается с триггером "
+            f"«{strip_html_preview(conflict.existing_trigger)}» в правиле #{conflict.existing_rule_id}. "
+            "Пришлите список триггеров ещё раз."
         )
         if isinstance(message_or_callback, CallbackQuery):
             await edit_or_answer(message_or_callback, text, cancel_keyboard())

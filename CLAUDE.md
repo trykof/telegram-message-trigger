@@ -132,6 +132,27 @@ Not a schema — just the entities and how they relate, for orientation:
 - **Trigger** — belongs to a Rule: the literal trigger text. A Rule has one
   or more Triggers.
 
+### Custom (Premium) emoji
+
+Trigger text and reply text are stored as HTML, not plain text, specifically
+so custom emoji survive. Telegram represents a custom emoji as a
+`custom_emoji` message entity over a plain fallback glyph — the raw
+`.text`/`.caption` never contains the emoji's identity, only the entity does.
+Whenever text is captured from the owner (entering triggers/reply, editing
+either), it's converted via aiogram's `html_decoration.unparse(text,
+entities)` into HTML, turning each custom emoji into
+`<tg-emoji emoji-id="...">fallback</tg-emoji>` (and incidentally preserving
+any other formatting the owner typed, e.g. bold/italic — accepted as a side
+effect, not a feature to build on). This is also why matching an incoming
+business message runs against that same HTML rendering of it, not its raw
+text: two different custom emoji can share a fallback glyph, and comparing
+by the tag's `emoji-id` is what makes trigger matching "by the actual
+emoji" rather than by its visual look-alike. Since the bot's default
+`parse_mode` is HTML, stored reply text sends back correctly as-is; anywhere
+a trigger/reply preview must NOT be interpreted as HTML (inline button
+labels, native alert popups), strip it with `text_format.strip_html_preview`
+first.
+
 ## Tech stack
 
 - Python 3.11
