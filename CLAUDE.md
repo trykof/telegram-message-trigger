@@ -110,6 +110,9 @@ view where the user can:
   creation (other rules may have taken over its triggers while it was off);
   if it now conflicts, re-enabling is refused until the conflict is
   resolved.
+- Delete the rule outright (with a confirmation step first, since it's
+  irreversible) — unlike disabling, this removes the rule and its triggers
+  for good.
 
 ### Scope boundary
 
@@ -117,8 +120,8 @@ This is the entire feature set. Deliberately **out of scope** unless the
 user asks for it later: rule priorities/ordering, scheduling or expiry,
 analytics/usage dashboards, targeting anything other than a single specific
 contact or all chats (e.g. groups of contacts, exclusion lists), multi-
-language bot UI, deleting rules (disable covers that need), anything about
-groups/channels. Do not add any of this speculatively.
+language bot UI, anything about groups/channels. Do not add any of this
+speculatively.
 
 ## Data model (conceptual)
 

@@ -167,3 +167,8 @@ async def update_rule_reply(session: AsyncSession, rule: Rule, reply_text: str) 
 async def set_rule_active(session: AsyncSession, rule: Rule, is_active: bool) -> None:
     rule.is_active = is_active
     await session.commit()
+
+
+async def delete_rule(session: AsyncSession, rule: Rule) -> None:
+    await session.delete(rule)
+    await session.commit()

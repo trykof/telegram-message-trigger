@@ -5,7 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from telegram_message_trigger.db.models import Rule
 from telegram_message_trigger.handlers._util import edit_or_answer, message_to_html
-from telegram_message_trigger.keyboards.rules import rule_detail_keyboard
+from telegram_message_trigger.keyboards.menu import main_menu_keyboard
+from telegram_message_trigger.keyboards.rules import (
+    rule_delete_confirm_keyboard,
+    rule_detail_keyboard,
+    rules_list_keyboard,
+)
 from telegram_message_trigger.keyboards.wizard import (
     cancel_keyboard,
     case_sensitivity_keyboard,
@@ -14,10 +19,12 @@ from telegram_message_trigger.keyboards.wizard import (
     whole_word_keyboard,
 )
 from telegram_message_trigger.services.rules import (
+    delete_rule,
     find_conflict_for_rule,
     find_conflicting_trigger,
     format_target_label,
     get_rule,
+    list_rules,
     parse_trigger_input,
     set_rule_active,
     update_rule_matching,
@@ -63,6 +70,14 @@ async def _show_rule_detail(callback: CallbackQuery, session: AsyncSession, rule
         await callback.answer("Правило не найдено", show_alert=True)
         return
     await edit_or_answer(callback, _render_rule_detail(rule), rule_detail_keyboard(rule))
+
+
+async def show_rules_list_view(callback: CallbackQuery, session: AsyncSession, owner_id: int) -> None:
+    rules = await list_rules(session, owner_id)
+    if not rules:
+        await edit_or_answer(callback, "У вас пока нет правил.", main_menu_keyboard())
+    else:
+        await edit_or_answer(callback, "Ваши правила:", rules_list_keyboard(rules))
 
 
 @router.callback_query(F.data.regexp(r"^rule:(\d+)$"))
@@ -347,3 +362,31 @@ async def edit_cancel_scope_contact(message: Message, state: FSMContext, session
     await message.answer("Отменено.", reply_markup=ReplyKeyboardRemove())
     if rule is not None:
         await message.answer(_render_rule_detail(rule), reply_markup=rule_detail_keyboard(rule))
+
+
+@router.callback_query(F.data.regexp(r"^rule:(\d+):delete$"))
+async def delete_rule_confirm(callback: CallbackQuery, session: AsyncSession) -> None:
+    rule_id = _extract_rule_id(callback)
+    rule = await get_rule(session, rule_id)
+    if rule is None:
+        await callback.answer("Правило не найдено", show_alert=True)
+        return
+    await edit_or_answer(
+        callback,
+        f"Удалить правило #{rule.id}? Это действие необратимо.",
+        rule_delete_confirm_keyboard(rule.id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.regexp(r"^rule:(\d+):delete_confirm$"))
+async def delete_rule_execute(callback: CallbackQuery, session: AsyncSession) -> None:
+    rule_id = _extract_rule_id(callback)
+    rule = await get_rule(session, rule_id)
+    if rule is None:
+        await callback.answer("Правило не найдено", show_alert=True)
+        return
+    owner_id = rule.owner_id
+    await delete_rule(session, rule)
+    await show_rules_list_view(callback, session, owner_id)
+    await callback.answer("Правило удалено")

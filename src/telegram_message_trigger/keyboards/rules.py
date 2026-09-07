@@ -30,6 +30,15 @@ def rule_detail_keyboard(rule: Rule) -> InlineKeyboardMarkup:
     builder.button(text="🎯 Изменить чат", callback_data=f"rule:{rule.id}:edit_scope")
     toggle_text = "🔴 Отключить" if rule.is_active else "🟢 Включить"
     builder.button(text=toggle_text, callback_data=f"rule:{rule.id}:toggle")
+    builder.button(text="🗑 Удалить", callback_data=f"rule:{rule.id}:delete")
     builder.button(text="⬅️ К списку", callback_data="menu:list_rules")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def rule_delete_confirm_keyboard(rule_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Да, удалить", callback_data=f"rule:{rule_id}:delete_confirm")
+    builder.button(text="❌ Отмена", callback_data=f"rule:{rule_id}")
     builder.adjust(1)
     return builder.as_markup()
