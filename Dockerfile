@@ -13,5 +13,6 @@ RUN uv sync --frozen --no-install-project --no-dev
 
 COPY . .
 RUN uv sync --frozen --no-dev
+RUN chmod +x entrypoint.sh
 
-CMD ["uv", "run", "--no-sync", "telegram-message-trigger"]
+ENTRYPOINT ["./entrypoint.sh"]

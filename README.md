@@ -42,14 +42,27 @@ docker compose up --build
 ```
 
 This starts the bot alongside a PostgreSQL database (`DATABASE_URL` is
-overridden in `docker-compose.yml` to point at it).
+overridden in `docker-compose.yml` to point at it). The container's
+entrypoint runs `alembic upgrade head` before starting the bot, so the
+schema is always up to date on (re)deploy — no manual migration step needed
+for the Docker path.
 
 ## Migrations
 
+Generating a new migration still has to happen where the package is
+importable (Docker, since `uv run alembic` needs it — see the note above).
+Use a named (not `--rm`) container so the generated file can be copied back
+out to the host afterwards, then rebuild so the image picks it up:
+
 ```bash
-uv run alembic revision --autogenerate -m "describe change"
-uv run alembic upgrade head
+docker compose run --name migration_gen bot uv run --no-sync alembic revision --autogenerate -m "describe change"
+docker cp migration_gen:/app/alembic/versions/<file>.py ./alembic/versions/
+docker rm migration_gen
+docker compose build bot
 ```
+
+Applying migrations manually (e.g. against a non-Docker/local database) is
+just `uv run alembic upgrade head`.
 
 ## Tooling
 
