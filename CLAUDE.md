@@ -64,8 +64,16 @@ the reply:
    The rule fires if **any** of its triggers matches the incoming message
    (OR semantics within a rule).
 3. **Reply text.** What the bot sends back when the rule matches.
+4. **Chat scope.** Which of the owner's business chats the rule applies to:
+   - **All chats** — matches a message from anyone writing to the business
+     account, or
+   - **A specific contact** — matches only messages from one chosen Telegram
+     user. The user is picked via Telegram's native contact-picker button
+     (`request_users`), not typed in — the bot only ever compares by the
+     resulting numeric Telegram user id, never by name/username (those may
+     change or be absent).
 
-Once all three are provided, the rule is saved and becomes active
+Once all four are provided, the rule is saved and becomes active
 immediately.
 
 ### Overlap prevention
@@ -73,11 +81,15 @@ immediately.
 Two active rules must never be able to match the same incoming message —
 this is enforced at creation/edit time, not at message-matching time. When
 a rule is created or edited, its trigger set is checked against every other
-*active* rule owned by the same user (under the matching options in effect
-for each rule); if an overlap is found, the bot rejects the input and asks
-the user to adjust it. There is no runtime priority/ordering system for
-resolving overlapping matches — overlaps are simply not allowed to exist.
-The exact overlap-detection algorithm (e.g. how substring-mode triggers are
+*active* rule owned by the same user that could apply to the same chat
+(under the matching options in effect for each rule); if an overlap is
+found, the bot rejects the input and asks the user to adjust it. Two rules'
+chat scopes are only compared against each other when deciding whether they
+*could* both apply to the same message: "all chats" can collide with
+anything, and two "specific contact" rules only collide when they name the
+same contact. There is no runtime priority/ordering system for resolving
+overlapping matches — overlaps are simply not allowed to exist. The exact
+trigger overlap-detection algorithm (e.g. how substring-mode triggers are
 compared against whole-word-mode triggers from another rule) is an
 implementation detail to work out during development, but the product
 behavior — reject at input time — is fixed.
@@ -90,8 +102,8 @@ re-enabled. Only active rules take part in matching and in the overlap
 check. Selecting one opens an edit
 view where the user can:
 
-- Edit the matching options, triggers, and/or reply text (subject to the
-  same overlap check as creation).
+- Edit the matching options, triggers, reply text, and/or chat scope
+  (subject to the same overlap check as creation).
 - Toggle the rule active/inactive without deleting it. Inactive rules are
   excluded from matching and from overlap checks, but stay in the list so
   they can be re-enabled later. Re-enabling runs the same overlap check as
@@ -103,10 +115,10 @@ view where the user can:
 
 This is the entire feature set. Deliberately **out of scope** unless the
 user asks for it later: rule priorities/ordering, scheduling or expiry,
-analytics/usage dashboards, per-chat rules (rules apply to all of the
-owner's personal chats uniformly), multi-language bot UI, deleting rules
-(disable covers that need), anything about groups/channels. Do not add any
-of this speculatively.
+analytics/usage dashboards, targeting anything other than a single specific
+contact or all chats (e.g. groups of contacts, exclusion lists), multi-
+language bot UI, deleting rules (disable covers that need), anything about
+groups/channels. Do not add any of this speculatively.
 
 ## Data model (conceptual)
 
@@ -115,7 +127,8 @@ Not a schema — just the entities and how they relate, for orientation:
 - **Owner** — a connected Telegram Business account: Telegram user id,
   `business_connection_id`, connection enabled/disabled state.
 - **Rule** — belongs to an Owner: matching options (case sensitivity, word
-  boundary), reply text, active/inactive flag.
+  boundary), reply text, active/inactive flag, chat scope (nothing = all
+  chats, or a specific contact's Telegram user id).
 - **Trigger** — belongs to a Rule: the literal trigger text. A Rule has one
   or more Triggers.
 

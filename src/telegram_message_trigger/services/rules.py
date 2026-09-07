@@ -5,7 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from telegram_message_trigger.db.models import Rule, Trigger
-from telegram_message_trigger.services.matching import TriggerConflict, triggers_overlap
+from telegram_message_trigger.services.matching import TriggerConflict, scopes_can_overlap, triggers_overlap
+
+
+def format_target_label(
+    user_id: int, first_name: str | None, last_name: str | None, username: str | None
+) -> str:
+    name = " ".join(part for part in (first_name, last_name) if part)
+    if username:
+        return f"{name} (@{username})" if name else f"@{username}"
+    return name if name else f"ID {user_id}"
 
 
 def parse_trigger_input(raw_text: str) -> list[str]:
@@ -59,6 +68,7 @@ async def find_conflicting_trigger(
     case_sensitive: bool,
     whole_word: bool,
     trigger_texts: list[str],
+    target_telegram_user_id: int | None = None,
     exclude_rule_id: int | None = None,
 ) -> TriggerConflict | None:
     stmt = (
@@ -73,6 +83,8 @@ async def find_conflicting_trigger(
 
     for candidate in trigger_texts:
         for other_rule in other_rules:
+            if not scopes_can_overlap(target_telegram_user_id, other_rule.target_telegram_user_id):
+                continue
             for other_trigger in other_rule.triggers:
                 if triggers_overlap(
                     candidate,
@@ -97,6 +109,7 @@ async def find_conflict_for_rule(session: AsyncSession, rule: Rule) -> TriggerCo
         rule.case_sensitive,
         rule.whole_word,
         [trigger.text for trigger in rule.triggers],
+        target_telegram_user_id=rule.target_telegram_user_id,
         exclude_rule_id=rule.id,
     )
 
@@ -108,6 +121,8 @@ async def create_rule(
     whole_word: bool,
     trigger_texts: list[str],
     reply_text: str,
+    target_telegram_user_id: int | None = None,
+    target_label: str | None = None,
 ) -> Rule:
     rule = Rule(
         owner_id=owner_id,
@@ -115,6 +130,8 @@ async def create_rule(
         whole_word=whole_word,
         reply_text=reply_text,
         is_active=True,
+        target_telegram_user_id=target_telegram_user_id,
+        target_label=target_label,
         triggers=[Trigger(text=text) for text in trigger_texts],
     )
     session.add(rule)
@@ -126,6 +143,14 @@ async def create_rule(
 async def update_rule_matching(session: AsyncSession, rule: Rule, case_sensitive: bool, whole_word: bool) -> None:
     rule.case_sensitive = case_sensitive
     rule.whole_word = whole_word
+    await session.commit()
+
+
+async def update_rule_scope(
+    session: AsyncSession, rule: Rule, target_telegram_user_id: int | None, target_label: str | None
+) -> None:
+    rule.target_telegram_user_id = target_telegram_user_id
+    rule.target_label = target_label
     await session.commit()
 
 

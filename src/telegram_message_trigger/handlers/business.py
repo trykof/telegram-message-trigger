@@ -2,7 +2,7 @@ from aiogram import Router
 from aiogram.types import BusinessConnection, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from telegram_message_trigger.services.matching import rule_matches
+from telegram_message_trigger.services.matching import rule_matches, scope_matches
 from telegram_message_trigger.services.owners import (
     get_owner_by_business_connection,
     set_connection,
@@ -26,7 +26,7 @@ async def on_business_message(message: Message, session: AsyncSession) -> None:
     if owner is None or not owner.is_connected:
         return
 
-    if message.from_user and message.from_user.id == owner.telegram_user_id:
+    if not message.from_user or message.from_user.id == owner.telegram_user_id:
         return
 
     text = message.text or message.caption
@@ -35,6 +35,6 @@ async def on_business_message(message: Message, session: AsyncSession) -> None:
 
     rules = await list_active_rules(session, owner.id)
     for rule in rules:
-        if rule_matches(text, rule):
+        if scope_matches(rule.target_telegram_user_id, message.from_user.id) and rule_matches(text, rule):
             await message.answer(rule.reply_text)
             return

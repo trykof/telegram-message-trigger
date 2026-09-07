@@ -26,6 +26,7 @@ def rule_detail_keyboard(rule: Rule) -> InlineKeyboardMarkup:
     builder.button(text="🔤 Изменить условия совпадения", callback_data=f"rule:{rule.id}:edit_matching")
     builder.button(text="✏️ Изменить триггеры", callback_data=f"rule:{rule.id}:edit_triggers")
     builder.button(text="💬 Изменить ответ", callback_data=f"rule:{rule.id}:edit_reply")
+    builder.button(text="🎯 Изменить чат", callback_data=f"rule:{rule.id}:edit_scope")
     toggle_text = "🔴 Отключить" if rule.is_active else "🟢 Включить"
     builder.button(text=toggle_text, callback_data=f"rule:{rule.id}:toggle")
     builder.button(text="⬅️ К списку", callback_data="menu:list_rules")

@@ -29,6 +29,8 @@ class Rule(Base):
     whole_word: Mapped[bool] = mapped_column(default=False)
     reply_text: Mapped[str] = mapped_column(Text, default="")
     is_active: Mapped[bool] = mapped_column(default=True)
+    target_telegram_user_id: Mapped[int | None] = mapped_column(BigInteger, default=None)
+    target_label: Mapped[str | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     owner: Mapped["Owner"] = relationship(back_populates="rules")

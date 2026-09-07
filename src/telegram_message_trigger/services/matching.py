@@ -28,6 +28,14 @@ def rule_matches(message_text: str, rule: Rule) -> bool:
     )
 
 
+def scope_matches(target_telegram_user_id: int | None, message_from_user_id: int) -> bool:
+    return target_telegram_user_id is None or target_telegram_user_id == message_from_user_id
+
+
+def scopes_can_overlap(target_a: int | None, target_b: int | None) -> bool:
+    return target_a is None or target_b is None or target_a == target_b
+
+
 def triggers_overlap(
     text_a: str,
     case_sensitive_a: bool,

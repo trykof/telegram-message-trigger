@@ -6,6 +6,8 @@ class AddRuleStates(StatesGroup):
     whole_word = State()
     triggers = State()
     reply_text = State()
+    scope = State()
+    scope_contact = State()
 
 
 class EditMatchingStates(StatesGroup):
@@ -19,3 +21,8 @@ class EditTriggersStates(StatesGroup):
 
 class EditReplyStates(StatesGroup):
     reply_text = State()
+
+
+class EditScopeStates(StatesGroup):
+    scope = State()
+    scope_contact = State()
