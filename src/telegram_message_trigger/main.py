@@ -34,6 +34,7 @@ async def run() -> None:
         bot,
         allowed_updates=[
             "message",
+            "callback_query",
             "business_connection",
             "business_message",
             "edited_business_message",
